@@ -2,8 +2,9 @@ import subprocess
 from enum import Enum
 import platform
 import traceback
-import cv2
 import pyudev
+
+import os
 
 VID_CAMERA = 'VID_05A9'
 WINDOWS_PLATFORM_NAME = 'Windows'
@@ -106,6 +107,11 @@ class ControlCamera():
         except Exception as error:
             return StatusCamera.CAMERA_NOT_CONNECTED
         
+
+    def __getFirmwarePath(self):
+        # Retorna la ruta absoluta al archivo firmware.bin, asumiendo que está en el mismo directorio que este script
+        return os.path.join(os.path.dirname(os.path.realpath(__file__)), "firmware.bin")
+        
     def __loadFirmCameraInWindows(self):
         pathLoader = "FirmwareLoader/PS5_camera_files-main/OrbisEyeCameraFirmwareLoader.exe"
         result = str(subprocess.check_output(pathLoader))
@@ -139,8 +145,11 @@ class ControlCamera():
         index=0x14
         value=0
 
+
         try:
-            firmware=open("firmware.bin","rb")
+            firmwarePath = 'src/ros2_ps5_stereo/ros2_ps5_stereo/firmware.bin'
+            print('firmware path: ' + firmwarePath)
+            firmware=open(firmwarePath,"rb")
         except:
             print('error open firmware camera')
             return False

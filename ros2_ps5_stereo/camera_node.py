@@ -4,7 +4,7 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 
 import queue
-from cameraPs5Handler import CameraPs5Handler
+from ros2_ps5_stereo.cameraPs5Handler import CameraPs5Handler
 
 class CameraNode(Node):
     def __init__(self):
