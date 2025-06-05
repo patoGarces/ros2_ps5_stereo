@@ -1,0 +1,63 @@
+- Guardar todas las dependencias instaladas en el venv: pip freeze > requirements.txt
+- Para instalar esas dependencias en el otro entorno: pip install -r requirements.txt
+
+
+calibracion:
+
+- sudo apt install ros-jazzy-image-tools
+
+Alias para los topicos generados por mi nodo:
+
+- ros2 run topic_tools relay /camera_left/image_raw /left/image_raw
+- 
+
+ros2 run camera_calibration cameracalibrator \
+  --size 7x6 \
+  --square 0.025 \
+  --approximate 0.1 \
+  left:=/left/image_raw \
+  right:=/right/image_raw \
+  left_camera:=/left/camera_info \
+  right_camera:=/right/camera_info
+
+Para iniciar el nodo de camara: 
+
+- ros2 launch ros2_ps5_stereo ros2_ps5_stereo_launch.py
+
+
+Para generar el mapa de disparidad:
+- ros2 run stereo_image_proc disparity_node
+
+	con argumentos: 
+		ros2 run stereo_image_proc disparity_node --ros-args \
+		  -r left/image_rect:=/left/image_rect \
+		  -r right/image_rect:=/right/image_rect \
+		  -r left/camera_info:=/left/camera_info \
+		  -r right/camera_info:=/right/camera_info \
+		  -p min_disparity:=0 \
+		  -p max_disparity:=64 \
+		  -p block_size:=15 \
+		  -p uniqueness_ratio:=5.0
+
+Para ver mapa de disparidad:
+- ros2 run image_view disparity_view --ros-args --remap image:=/disparity
+
+Para correr el configure rqt:
+- ros2 run rqt_reconfigure rqt_reconfigure
+
+
+
+
+Convertir el mapa de disparidad en pointcloud:
+- ros2 run stereo_image_proc point_cloud_node
+
+
+
+setear fixed frame:
+- ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 map frame_left
+
+
+
+
+
+

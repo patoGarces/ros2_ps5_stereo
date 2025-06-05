@@ -14,7 +14,7 @@ from ros2_ps5_stereo.getFrame import Resolutions
 class CameraPs5Handler():
 
     statusCameraUi = 0
-    cameraResolution = Resolutions.RES_640x480
+    cameraResolution = Resolutions.RES_2560x800
     cameraFps = 8
 
     def __init__(self):
@@ -53,7 +53,6 @@ class CameraPs5Handler():
         try:
             cameraIndex = self.controlCamera.getCameraIndex()
             if (cameraIndex is not None):
-                self.cameraResolution = Resolutions.RES_2560x800
                 self.cameraFps = 30
                 self.getFrame.startStream(cameraIndex, self.cameraResolution, self.cameraFps)
             else:

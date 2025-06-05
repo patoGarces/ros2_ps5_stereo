@@ -10,6 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/ros2_ps5_stereo/launch', ['launch/ros2_ps5_stereo_launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
