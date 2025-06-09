@@ -36,44 +36,55 @@ def generate_launch_description():
         ],
     )
 
-    # Nodo de dispariity
     # disparity_node = Node(
     #     package='stereo_image_proc',
     #     executable='disparity_node',
     #     name='disparity_node',
     #     parameters=[{
-    #         'min_disparity': 0,
-    #         'max_disparity': 128,  # múltiplo de 16
-    #         # 'block_size': 100,
-    #         'correlation_window_size': 128,
-    #         'uniqueness_ratio': 5.0,
+    #         # Algoritmo SGBM
+    #         'sgbm_mode': 0,
+
+    #         # Disparity pre-filtering
+    #         'prefilter_size': 9,         # ventana de normalización (pixeles)
+    #         'prefilter_cap': 31,         # límite en valores normalizados
+
+    #         # Disparity correlation
+    #         'correlation_window_size': 61,  # tamaño de la ventana para correlación (debe ser impar, 5-255)
+    #         'min_disparity': 0,           # disparidad mínima (offset de búsqueda)
+    #         'disparity_range': 192,       # tamaño del rango de disparidad (pixeles)
+
+    #         # Post-filtering
+    #         'uniqueness_ratio': 5.0,     # filtrado por razón de unicidad
+    #         'texture_threshold': 10,     # filtro basado en textura mínima
+    #         'speckle_size': 100,         # tamaño mínimo de regiones para aceptar disparidad
+    #         'speckle_range': 4,          # rango para agrupar regiones conectadas
     #     }]
     # )
 
     disparity_node = Node(
-        package='stereo_image_proc',
-        executable='disparity_node',
-        name='disparity_node',
-        parameters=[{
-            # Algoritmo SGBM
-            'sgbm_mode': 0,
-
-            # Disparity pre-filtering
-            'prefilter_size': 9,         # ventana de normalización (pixeles)
-            'prefilter_cap': 31,         # límite en valores normalizados
-
-            # Disparity correlation
-            'correlation_window_size': 61,  # tamaño de la ventana para correlación (debe ser impar, 5-255)
-            'min_disparity': 0,           # disparidad mínima (offset de búsqueda)
-            'disparity_range': 192,       # tamaño del rango de disparidad (pixeles)
-
-            # Post-filtering
-            'uniqueness_ratio': 5.0,     # filtrado por razón de unicidad
-            'texture_threshold': 10,     # filtro basado en textura mínima
-            'speckle_size': 100,         # tamaño mínimo de regiones para aceptar disparidad
-            'speckle_range': 4,          # rango para agrupar regiones conectadas
-        }]
-    )
+    package='stereo_image_proc',
+    executable='disparity_node',
+    name='disparity_node',
+    remappings=[
+        ('left/image_rect', '/left/image_raw'),
+        ('right/image_rect', '/right/image_raw'),
+        ('left/camera_info', '/left/camera_info'),
+        ('right/camera_info', '/right/camera_info')
+    ],
+    parameters=[{
+        'sgbm_mode': 0,
+        'prefilter_size': 9,
+        'prefilter_cap': 31,
+        'correlation_window_size': 61,
+        'min_disparity': 0,
+        'disparity_range': 192,
+        'uniqueness_ratio': 5.0,
+        'texture_threshold': 10,
+        'speckle_size': 100,
+        'speckle_range': 4,
+    }],
+    output='screen'
+)
 
     # point_cloud_node = Node(
     #     package='stereo_image_proc',
@@ -99,15 +110,15 @@ def generate_launch_description():
         output='screen'
     )
 
-    metric_depthmap = Node(
-        package = 'depth_image_proc',
-        executable = 'convert_metric_node',
-        name = 'convert_metric_node',
-        remappings=[
-            ('disparity', '/disparity'),
-            ('depth', '/depthmap1')  # Salida
-        ]
-    )
+    # metric_depthmap = Node(
+    #     package = 'depth_image_proc',
+    #     executable = 'convert_metric_node',
+    #     name = 'convert_metric_node',
+    #     remappings=[
+    #         ('disparity', '/disparity'),
+    #         ('depth', '/depthmap1')  # Salida
+    #     ]
+    # )
 
 
     return LaunchDescription([
@@ -116,5 +127,5 @@ def generate_launch_description():
         rectify_right,
         disparity_node,
         point_cloud_node,
-        metric_depthmap
+        # metric_depthmap
     ])

@@ -24,6 +24,13 @@ Para iniciar el nodo de camara:
 
 - ros2 launch ros2_ps5_stereo ros2_ps5_stereo_launch.py
 
+Para iniciar el nodo de description: 
+
+- ros2 launch hoverrobot_description display.launch.py
+
+Para iniciar el nodo de comunicacion de hoverrobot
+- ros2 run ros2_hoverrobot_comms hoverrobot_comms_node
+
 
 Para generar el mapa de disparidad:
 - ros2 run stereo_image_proc disparity_node
@@ -58,6 +65,10 @@ setear fixed frame:
 
 
 
+
+
+relacionar frames del odometro con el pointcloud:
+ - ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 odom frame_left
 
 
 

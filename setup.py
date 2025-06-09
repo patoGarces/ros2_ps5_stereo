@@ -14,9 +14,9 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='pato',
+    maintainer='Pato Garcés',
     maintainer_email='patricio.garces@outlook.com',
-    description='TODO: Package description',
+    description='Stereo camera for ps5 camera',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
