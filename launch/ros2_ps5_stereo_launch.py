@@ -36,79 +36,59 @@ def generate_launch_description():
         ],
     )
 
-    # disparity_node = Node(
-    #     package='stereo_image_proc',
-    #     executable='disparity_node',
-    #     name='disparity_node',
-    #     parameters=[{
-    #         # Algoritmo SGBM
-    #         'sgbm_mode': 0,
-
-    #         # Disparity pre-filtering
-    #         'prefilter_size': 9,         # ventana de normalización (pixeles)
-    #         'prefilter_cap': 31,         # límite en valores normalizados
-
-    #         # Disparity correlation
-    #         'correlation_window_size': 61,  # tamaño de la ventana para correlación (debe ser impar, 5-255)
-    #         'min_disparity': 0,           # disparidad mínima (offset de búsqueda)
-    #         'disparity_range': 192,       # tamaño del rango de disparidad (pixeles)
-
-    #         # Post-filtering
-    #         'uniqueness_ratio': 5.0,     # filtrado por razón de unicidad
-    #         'texture_threshold': 10,     # filtro basado en textura mínima
-    #         'speckle_size': 100,         # tamaño mínimo de regiones para aceptar disparidad
-    #         'speckle_range': 4,          # rango para agrupar regiones conectadas
-    #     }]
-    # )
-
     disparity_node = Node(
-    package='stereo_image_proc',
-    executable='disparity_node',
-    name='disparity_node',
-    remappings=[
-        ('left/image_rect', '/left/image_raw'),
-        ('right/image_rect', '/right/image_raw'),
-        ('left/camera_info', '/left/camera_info'),
-        ('right/camera_info', '/right/camera_info')
-    ],
-    parameters=[{
-        'sgbm_mode': 0,
-        'prefilter_size': 9,
-        'prefilter_cap': 31,
-        'correlation_window_size': 61,
-        'min_disparity': 0,
-        'disparity_range': 192,
-        'uniqueness_ratio': 5.0,
-        'texture_threshold': 10,
-        'speckle_size': 100,
-        'speckle_range': 4,
-    }],
-    output='screen'
-)
+        package='stereo_image_proc',
+        executable='disparity_node',
+        name='disparity_node',
+        parameters=[{
+            'sgbm_mode': 0,
+            'prefilter_size': 9,
+            'prefilter_cap': 31,
+            'correlation_window_size': 61,
+            'min_disparity': 0,
+            'disparity_range': 192,
+            'uniqueness_ratio': 5.0,
+            'texture_threshold': 10,
+            'speckle_size': 100,
+            'speckle_range': 4,
+        }],
+        output='screen'
+    )
 
-    # point_cloud_node = Node(
-    #     package='stereo_image_proc',
-    #     executable='point_cloud_node',
-    #     name='point_cloud_node',
-    #     # remappings=remappings,
-    # )
+    relay_node = Node(
+        package='ros2_ps5_stereo',
+        executable='relay_node_disparity',  # el script que compilaste
+        name='disparity_relay_qos',
+        output='screen'
+    )
+
+    disparity_to_pointcloud_node = Node(
+        package='ros2_ps5_stereo',
+        executable='disparity_to_pointcloud',
+        name='disparity_to_pointcloud',
+        output='screen',
+    )
+
 
     point_cloud_node = Node(
         package='stereo_image_proc',
         executable='point_cloud_node',
         name='point_cloud_node',
         remappings=[
-            # ('left/image_rect', '/left/image_rect'),
-            # ('right/image_rect', '/right/image_rect'),
-            # ('left/camera_info', '/left/camera_info'),
-            # ('right/camera_info', '/right/camera_info')
-            ('left/image_rect_color', '/left/image_rect'),
-            ('/disparity', '/disparity'),
+            ('left/image_rect', '/left/image_rect'),
+            ('right/image_rect', '/right/image_rect'),
+            # ('disparity_image', '/disparity'),            // TODO: cambiar el disparity_image por /disparity directametne
+
+            ('disparity', '/disparity_reliable'),
+
+
             ('left/camera_info', '/left/camera_info'),
-            ('right/camera_info', '/right/camera_info')
+            ('right/camera_info', '/right/camera_info'),
+            ('left/image_rect_color', '/left/image_rect'),
         ],
         output='screen'
     )
+
 
     # metric_depthmap = Node(
     #     package = 'depth_image_proc',
@@ -120,12 +100,23 @@ def generate_launch_description():
     #     ]
     # )
 
+    staticTransformCameras = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'frame_left'],
+    )
 
     return LaunchDescription([
         camera_node,
         rectify_left,
         rectify_right,
         disparity_node,
+
+
+        # relay_node,   // TODO: no sirvio, limpiar file y setup.py
+        disparity_to_pointcloud_node,
+
         point_cloud_node,
-        # metric_depthmap
+        # metric_depthmap,
+        staticTransformCameras
     ])

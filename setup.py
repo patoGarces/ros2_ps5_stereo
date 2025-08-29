@@ -21,7 +21,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'camera_node = ros2_ps5_stereo.camera_node:main'
+            'camera_node = ros2_ps5_stereo.camera_node:main',
+            'relay_node_disparity = ros2_ps5_stereo.relay_node_disparity:main',
+            'disparity_to_pointcloud = ros2_ps5_stereo.disparity_to_pointcloud:main'
         ],
     },
 )
