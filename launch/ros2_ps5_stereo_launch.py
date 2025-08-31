@@ -8,6 +8,11 @@ def generate_launch_description():
         executable='camera_node',
         name='camera_node',
         output='screen',
+        parameters=[{
+            'camera_resolution': 1, #    RES_1920p = 0(OJO SIN CALIBRAR), RES_1080p = 1, RES_640p = 2(OJO SIN CALIBRAR)
+            'camera_fps': 1,        #    FPS_8 = 0, FPS_30 = 1, FPS_60 = 2
+            'roi_height': 50        #    crop de los frames de cameras NO SE UTILIZA ACTUALMENTE
+        }]
     )
 
     # Nodo de rectificación para cámara izquierda
@@ -55,18 +60,14 @@ def generate_launch_description():
         output='screen'
     )
 
-    relay_node = Node(
-        package='ros2_ps5_stereo',
-        executable='relay_node_disparity',  # el script que compilaste
-        name='disparity_relay_qos',
-        output='screen'
-    )
-
     disparity_to_pointcloud_node = Node(
         package='ros2_ps5_stereo',
         executable='disparity_to_pointcloud',
         name='disparity_to_pointcloud',
         output='screen',
+        parameters=[{
+            'roi_height': 2
+        }]
     )
 
 

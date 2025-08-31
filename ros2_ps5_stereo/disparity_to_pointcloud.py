@@ -7,13 +7,18 @@ from stereo_msgs.msg import DisparityImage
 import numpy as np
 import open3d as o3d
 
-import cv2
-
 from sensor_msgs_py.point_cloud2 import create_cloud_xyz32
 
 class DisparityToPointCloudNode(Node):
     def __init__(self):
         super().__init__('disparity_to_pointcloud')
+
+        self.declare_parameter('roi_height', 25)                                        # píxeles arriba/abajo del centro
+        # Leer parámetros del nodo
+        self.roi_height = self.get_parameter('roi_height').value
+
+        self.get_logger().info(f'Roi recibido: {self.roi_height}')
+
         self.sub_disp = self.create_subscription(
             DisparityImage,
             '/disparity',
@@ -41,25 +46,48 @@ class DisparityToPointCloudNode(Node):
         )
 
         # Resize disparidad a 640x480 para acelerar
-        disp_resized = cv2.resize(disp, (640, 480), interpolation=cv2.INTER_LINEAR)
-        # disp_resized = disp
+        # disp_resized = cv2.resize(disp, (640, 480), interpolation=cv2.INTER_LINEAR)
+        disp_resized = disp
 
-        # Parámetros cámara (puedes obtener más de cam_info si quieres)
+        h_center = disp_resized.shape[0] // 2
+        roi_top = max(0, h_center - self.roi_height)
+        roi_bottom = min(disp_resized.shape[0], h_center + self.roi_height)
+        disp_roi = disp_resized[roi_top:roi_bottom, :]
+
+
+        # Parámetros cámara
         fx = self.cam_info.k[0]
         fy = self.cam_info.k[4]
-        cx = self.cam_info.k[2]
-        cy = self.cam_info.k[5]
+        cx_full = self.cam_info.k[2]
+        cy_full = self.cam_info.k[5]
 
-        # Calcular nube de puntos
+        # --- Recalcular 'cy' relativo a la ROI
+        # cy_roi es el índice del centro óptico dentro del array recortado
+        cy_roi = cy_full - roi_top
+
+        # --- Baseline --
+        baseline = 0.05  # metros
+
+        # --- Reproyección sobre la ROI --
         points = []
-        for v in range(disp.shape[0]):
-            for u in range(disp_resized.shape[1]):
-                d = disp[v, u]
-                if d <= 0.0:
+        roi_h, roi_w = disp_roi.shape
+        for v_roi in range(roi_h):                # fila dentro de la ROI
+            for u in range(roi_w):                # columna (no recortamos horizontalmente)
+                d = disp_roi[v_roi, u]
+                if not np.isfinite(d) or d <= 0.0:
                     continue
-                Z = fx * 0.05 / d  # baseline=0.05m (ajusta según tu cámara)
-                X = (u - cx) * Z / fx
-                Y = (v - cy) * Z / fy
+
+                # Z = baseline * fx / disparity
+                Z = baseline * fx / d
+
+                # u corresponde a la columna en la imagen completa si no recortaste horizontalmente.
+                # Si recortaste horizontalmente, usa u_img = u + roi_left.
+                u_img = u
+
+                # X y Y usando el centro óptico y la ROI correctamente ajustada para Y
+                X = (u_img - cx_full) * Z / fx
+                Y = (v_roi - cy_roi) * Z / fy   # <-- cy_roi: centro relativo a la ROI
+
                 points.append([X, Y, Z])
 
         if not points:

@@ -10,14 +10,17 @@ from ros2_ps5_stereo.controlCamera import ControlCamera
 from ros2_ps5_stereo.controlCamera import StatusCamera
 from ros2_ps5_stereo.getFrame import GetFrame
 from ros2_ps5_stereo.getFrame import Resolutions
+from ros2_ps5_stereo.getFrame import Fps
 
 class CameraPs5Handler():
 
     statusCameraUi = 0
-    cameraResolution = Resolutions.RES_2560x800
-    cameraFps = 8
 
-    def __init__(self):
+    def __init__(self, resolution_enum, fps_enum, roi_height):
+
+        self.cameraResolution = resolution_enum
+        self.cameraFps = fps_enum
+        self.roiHeight = roi_height
 
         self.controlCamera = ControlCamera()
         self.getFrame =  GetFrame()
@@ -28,8 +31,6 @@ class CameraPs5Handler():
         self.forwardPose = 0.0
 
         self.framesQueue = self.getFrame.getQueueGetFrame()
-
-        print('Init Headless server')
 
         self.statusCameraHardware = StatusCamera.CAMERA_NOT_CONNECTED
 
@@ -53,7 +54,6 @@ class CameraPs5Handler():
         try:
             cameraIndex = self.controlCamera.getCameraIndex()
             if (cameraIndex is not None):
-                self.cameraFps = 30
                 self.getFrame.startStream(cameraIndex, self.cameraResolution, self.cameraFps)
             else:
                 print('Camera index no encontrado')

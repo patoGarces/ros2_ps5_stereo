@@ -60,19 +60,27 @@ class GetFrame:
             # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)
             # self.cap.set(cv2.CAP_PROP_FPS, 8)
             try:
-                if (resolution == Resolutions.RES_640x480):
+                if (resolution == Resolutions.RES_640p):
                     self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
                     self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)        
-                elif (resolution == Resolutions.RES_2560x800):   
+                elif (resolution == Resolutions.RES_1080p):   # DEBERIA SER 1280
                     self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 2560)
                     self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 800)
-                elif (resolution == Resolutions.RES_3448x808):
+                elif (resolution == Resolutions.RES_1920p):  # DEBERIA SER 
                     self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3448)
                     self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)
                 else:
                     print("Error al seleccionar la resolucion,resValue: ",resolution)
 
-                self.cap.set(cv2.CAP_PROP_FPS, fps)
+                if (fps == Fps.FPS_8):
+                    self.cap.set(cv2.CAP_PROP_FPS, 8) 
+                elif (fps == Fps.FPS_30):
+                    self.cap.set(cv2.CAP_PROP_FPS, 30)
+                elif (fps == Fps.FPS_60):
+                    self.cap.set(cv2.CAP_PROP_FPS, 60)       
+                else:
+                    self.cap.set(cv2.CAP_PROP_FPS, 8)
+                    print("Error al seleccionar los fps,resValue: ",fps)
 
                 self.flagRunning.set()
                 self.hilo_emision = threading.Thread(target=self.getNewFrame)
@@ -94,7 +102,12 @@ class GetFrame:
         cv2.imshow('RGB right', right)
 
 
-class Resolutions(Enum):          # TODO: implementar
-    RES_3448x808 = 0
-    RES_2560x800 = 1
-    RES_640x480 = 2
+class Resolutions(Enum):
+    RES_1920p = 0        # res: RES_3448x808
+    RES_1080p = 1        # res: RES_2560x800
+    RES_640p = 2         # res: RES_640x480
+
+class Fps(Enum):
+    FPS_8 = 0
+    FPS_30 = 1
+    FPS_60 = 2

@@ -6,6 +6,9 @@ from sensor_msgs.msg import CameraInfo
 from sensor_msgs.srv import SetCameraInfo
 import yaml
 
+from ros2_ps5_stereo.getFrame import Resolutions
+from ros2_ps5_stereo.getFrame import Fps
+
 from copy import deepcopy
 
 import queue
@@ -14,8 +17,22 @@ from ros2_ps5_stereo.cameraPs5Handler import CameraPs5Handler
 class CameraNode(Node):
     def __init__(self):
         super().__init__('camera_node')
-       
-        self.cameraPs5Handler = CameraPs5Handler()
+
+        # Parámetros del nodo
+        self.declare_parameter('camera_resolution', Resolutions.RES_1080p.value)     # entero que mapea al enum de resolution
+        self.declare_parameter('camera_fps', Fps.FPS_30.value)                          # entero que mapea al enum de fps
+        self.declare_parameter('roi_height', 25)                                        # píxeles arriba/abajo del centro
+
+        # Leer parámetros
+        res_enum_val = Resolutions(self.get_parameter('camera_resolution').value)
+        fps_enum_val = Fps(self.get_parameter('camera_fps').value)
+        roi_height = self.get_parameter('roi_height').value
+
+        self.get_logger().info(
+            f'Resolución seleccionada: {res_enum_val}, fps: {fps_enum_val}, ROI: {roi_height} pixeles'
+        )
+
+        self.cameraPs5Handler = CameraPs5Handler(resolution_enum=res_enum_val, fps_enum=fps_enum_val, roi_height=roi_height)
         self.frame_queue = self.cameraPs5Handler.getQueueFrames()
         self.bridge = CvBridge()
 
