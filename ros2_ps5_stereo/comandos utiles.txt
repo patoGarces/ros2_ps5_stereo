@@ -52,7 +52,8 @@ Para generar el mapa de disparidad:
 		  -p uniqueness_ratio:=5.0
 
 Para ver mapa de disparidad:
-- ros2 run image_view disparity_view --ros-args --remap image:=/disparity
+- ros2 run image_view disparity_view image:=/disparity
+
 
 Para correr el configure rqt:
 - ros2 run rqt_reconfigure rqt_reconfigure

@@ -10,7 +10,7 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'camera_resolution': 1, #    RES_1920p = 0(OJO SIN CALIBRAR), RES_1080p = 1, RES_640p = 2(OJO SIN CALIBRAR)
-            'camera_fps': 1,        #    FPS_8 = 0, FPS_30 = 1, FPS_60 = 2
+            'camera_fps': 0,        #    FPS_8 = 0, FPS_30 = 1, FPS_60 = 2
             'roi_height': 50        #    crop de los frames de cameras NO SE UTILIZA ACTUALMENTE
         }]
     )
@@ -60,7 +60,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    disparity_to_pointcloud_node = Node(
+    pointcloud_custom_node = Node(
         package='ros2_ps5_stereo',
         executable='disparity_to_pointcloud',
         name='disparity_to_pointcloud',
@@ -70,36 +70,38 @@ def generate_launch_description():
         }]
     )
 
-
     point_cloud_node = Node(
         package='stereo_image_proc',
         executable='point_cloud_node',
         name='point_cloud_node',
         remappings=[
-            ('left/image_rect', '/left/image_rect'),
-            ('right/image_rect', '/right/image_rect'),
-            # ('disparity_image', '/disparity'),            // TODO: cambiar el disparity_image por /disparity directametne
-
-            ('disparity', '/disparity_reliable'),
-
-
-            ('left/camera_info', '/left/camera_info'),
-            ('right/camera_info', '/right/camera_info'),
             ('left/image_rect_color', '/left/image_rect'),
         ],
-        output='screen'
+        parameters=[{
+            'queue_size': 10,
+            'min_disparity': 0,
+            'max_disparity': 192,
+            'use_color': True
+        }],
+        output='screen',
+        arguments=['--ros-args', '--log-level', 'error']
     )
 
-
-    # metric_depthmap = Node(
-    #     package = 'depth_image_proc',
-    #     executable = 'convert_metric_node',
-    #     name = 'convert_metric_node',
-    #     remappings=[
-    #         ('disparity', '/disparity'),
-    #         ('depth', '/depthmap1')  # Salida
-    #     ]
-    # )
+    metric_depthmap = Node(
+        package = 'depth_image_proc',
+        executable = 'convert_metric_node',
+        name = 'convert_metric_node',
+        remappings=[
+            ('disparity', '/disparity'),
+            ('depth', '/depthmap1'),            # salida
+            ('image_raw', '/right/image_rect')
+        ],
+        parameters=[{
+            'min_depth': 0.1,   # mínimo 10 cm
+            'max_depth': 5.0    # máximo 5 metros
+        }],
+        arguments=['--ros-args', '--log-level', 'debug']
+    )
 
     staticTransformCameras = Node(
         package='tf2_ros',
@@ -112,12 +114,9 @@ def generate_launch_description():
         rectify_left,
         rectify_right,
         disparity_node,
-
-
-        # relay_node,   // TODO: no sirvio, limpiar file y setup.py
-        disparity_to_pointcloud_node,
-
-        point_cloud_node,
+        pointcloud_custom_node,
+        # point_cloud_node,
         # metric_depthmap,
+        # pointcloud_from_depth,
         staticTransformCameras
     ])

@@ -5,7 +5,6 @@ from sensor_msgs.msg import CameraInfo, PointCloud2
 from stereo_msgs.msg import DisparityImage
 
 import numpy as np
-import open3d as o3d
 
 from sensor_msgs_py.point_cloud2 import create_cloud_xyz32
 
@@ -80,8 +79,6 @@ class DisparityToPointCloudNode(Node):
                 # Z = baseline * fx / disparity
                 Z = baseline * fx / d
 
-                # u corresponde a la columna en la imagen completa si no recortaste horizontalmente.
-                # Si recortaste horizontalmente, usa u_img = u + roi_left.
                 u_img = u
 
                 # X y Y usando el centro óptico y la ROI correctamente ajustada para Y
