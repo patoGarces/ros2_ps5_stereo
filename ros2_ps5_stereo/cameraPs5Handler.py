@@ -1,29 +1,24 @@
 import time
-import numpy as np
 import cv2
-
 import logging
 import queue
-
-from ros2_ps5_stereo.Utils.utils import CameraStatusUi
+from ros2_ps5_stereo.utilsClass import CameraStatusUi
 from ros2_ps5_stereo.controlCamera import ControlCamera 
 from ros2_ps5_stereo.controlCamera import StatusCamera
 from ros2_ps5_stereo.getFrame import GetFrame
-from ros2_ps5_stereo.getFrame import Resolutions
-from ros2_ps5_stereo.getFrame import Fps
 
 class CameraPs5Handler():
 
     statusCameraUi = 0
 
-    def __init__(self, resolution_enum, fps_enum, roi_height):
+    def __init__(self, logger, resolution_enum, roi_height):
 
+        self.ros2Logger = logger
         self.cameraResolution = resolution_enum
-        self.cameraFps = fps_enum
         self.roiHeight = roi_height
 
         self.controlCamera = ControlCamera()
-        self.getFrame =  GetFrame()
+        self.getFrame =  GetFrame(resolution_enum)
 
         self.zFilterHeight = 0
         self.zFilterThickness = 0.5
@@ -54,7 +49,7 @@ class CameraPs5Handler():
         try:
             cameraIndex = self.controlCamera.getCameraIndex()
             if (cameraIndex is not None):
-                self.getFrame.startStream(cameraIndex, self.cameraResolution, self.cameraFps)
+                self.getFrame.startStream(cameraIndex, self.cameraResolution)
             else:
                 print('Camera index no encontrado')
         except Exception as error :

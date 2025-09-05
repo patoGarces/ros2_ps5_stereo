@@ -5,9 +5,9 @@ from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.srv import SetCameraInfo
 import yaml
+import os
 
-from ros2_ps5_stereo.getFrame import Resolutions
-from ros2_ps5_stereo.getFrame import Fps
+from ros2_ps5_stereo.utilsClass import Resolutions, Utils
 
 from copy import deepcopy
 
@@ -18,21 +18,23 @@ class CameraNode(Node):
     def __init__(self):
         super().__init__('camera_node')
 
+        self.logger = self.get_logger()
+
         # Parámetros del nodo
-        self.declare_parameter('camera_resolution', Resolutions.RES_1080p.value)     # entero que mapea al enum de resolution
-        self.declare_parameter('camera_fps', Fps.FPS_30.value)                          # entero que mapea al enum de fps
-        self.declare_parameter('roi_height', 25)                                        # píxeles arriba/abajo del centro
+        self.declare_parameter('camera_resolution', Resolutions.RES_1280x800_8FPS.value)    # entero que mapea al enum de resolution
+        self.declare_parameter('roi_height', 25)                                            # píxeles arriba/abajo del centro
 
         # Leer parámetros
-        res_enum_val = Resolutions(self.get_parameter('camera_resolution').value)
-        fps_enum_val = Fps(self.get_parameter('camera_fps').value)
-        roi_height = self.get_parameter('roi_height').value
+        res_enum_param = Resolutions(self.get_parameter('camera_resolution').value)
+        roi_height_param = self.get_parameter('roi_height').value
 
-        self.get_logger().info(
-            f'Resolución seleccionada: {res_enum_val}, fps: {fps_enum_val}, ROI: {roi_height} pixeles'
+        period_fps = Utils().enumResolutionsToPeriod(res_enum_param)
+
+        self.logger.info(
+            f'Resolución seleccionada: {res_enum_param}, period: {period_fps}, ROI: {roi_height_param} pixeles'
         )
 
-        self.cameraPs5Handler = CameraPs5Handler(resolution_enum=res_enum_val, fps_enum=fps_enum_val, roi_height=roi_height)
+        self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=roi_height_param)
         self.frame_queue = self.cameraPs5Handler.getQueueFrames()
         self.bridge = CvBridge()
 
@@ -50,21 +52,19 @@ class CameraNode(Node):
         self.right_set_info_srv = self.create_service(
             SetCameraInfo, 'right_camera/set_camera_info', self.right_set_camera_info_callback)
 
-        calibLeft = self.__getCameraInfo('src/ros2_ps5_stereo/ros2_ps5_stereo/calibration/left.yaml')
-        calibRight = self.__getCameraInfo('src/ros2_ps5_stereo/ros2_ps5_stereo/calibration/right.yaml')
+        calibLeftPath, calibRightPath = self.__getCalibYamlPath(res_enum_param)
+        calibLeft = self.__getCameraInfo(calibLeftPath)
+        calibRight = self.__getCameraInfo(calibRightPath)
 
         self.left_camera_info = self.__convertYamlToCameraInfo(calibLeft)
         self.left_camera_info.header.frame_id = 'frame_left'
         self.right_camera_info = self.__convertYamlToCameraInfo(calibRight)
         self.right_camera_info.header.frame_id = 'frame_right'
 
-        print('calib left: ' + str(self.left_camera_info))
-        print('calib right: ' + str(self.right_camera_info))
-
         # TODO: pendiente almacenar los yaml recibidos en el service de SetCameraInfo
         # TODO: al almacenarlos se debe remplazar el camera name
 
-        self.timer = self.create_timer(0.033, self.framePublisher)  # ~30Hz
+        self.timer = self.create_timer(period_fps, self.framePublisher)
 
 
     def framePublisher(self):
@@ -125,6 +125,27 @@ class CameraNode(Node):
         with open(yaml_path, 'r') as file:
             calib_data = yaml.safe_load(file)
         return calib_data
+    
+    def __getCalibYamlPath(self, resolution: Resolutions):
+        base_path = 'src/ros2_ps5_stereo/ros2_ps5_stereo/calibration/'
+
+        mapping = {
+            Resolutions.RES_640x480_DOWNSAMPLED_8FPS:   "640x480",
+            Resolutions.RES_640x480_DOWNSAMPLED_30FPS:  "640x480",
+            Resolutions.RES_640x480_DOWNSAMPLED_60FPS:  "640x480",
+            Resolutions.RES_1280x800_8FPS:              "1280x800",
+            Resolutions.RES_1280x800_30FPS:             "1280x800",
+            Resolutions.RES_1280x800_60FPS:             "1280x800",
+            Resolutions.RES_1920x1080_8FPS:             "1920x1080",
+            Resolutions.RES_1920x1080_30FPS:            "1920x1080",
+        }
+
+        folder = mapping[resolution]
+
+        calib_left  = os.path.join(base_path, folder, "left.yaml")
+        calib_right = os.path.join(base_path, folder, "right.yaml")
+
+        return calib_left, calib_right
 
 
 

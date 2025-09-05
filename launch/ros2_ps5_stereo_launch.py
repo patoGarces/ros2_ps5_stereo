@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from ros2_ps5_stereo.utilsClass import Resolutions
 
 def generate_launch_description():
     # Nodo de cámaras, ros2_ps5_stereo y el ejecutable camera_node
@@ -9,9 +10,8 @@ def generate_launch_description():
         name='camera_node',
         output='screen',
         parameters=[{
-            'camera_resolution': 1, #    RES_1920p = 0(OJO SIN CALIBRAR), RES_1080p = 1, RES_640p = 2(OJO SIN CALIBRAR)
-            'camera_fps': 0,        #    FPS_8 = 0, FPS_30 = 1, FPS_60 = 2
-            'roi_height': 50        #    crop de los frames de cameras NO SE UTILIZA ACTUALMENTE
+            'camera_resolution': Resolutions.RES_1280x800_30FPS.value,
+            'roi_height': 50        #       crop de los frames de cameras NO SE UTILIZA ACTUALMENTE
         }]
     )
 
@@ -26,6 +26,7 @@ def generate_launch_description():
             ('camera_info', '/left/camera_info'),
             ('image_rect', '/left/image_rect')  # topic rectificado que publica
         ],
+        parameters=[{'approximate_sync': True}]
     )
 
     # Nodo de rectificación para cámara derecha
@@ -39,6 +40,7 @@ def generate_launch_description():
             ('camera_info', '/right/camera_info'),
             ('image_rect', '/right/image_rect')
         ],
+        parameters=[{'approximate_sync': True}]
     )
 
     disparity_node = Node(
@@ -87,36 +89,39 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'error']
     )
 
-    metric_depthmap = Node(
-        package = 'depth_image_proc',
-        executable = 'convert_metric_node',
-        name = 'convert_metric_node',
-        remappings=[
-            ('disparity', '/disparity'),
-            ('depth', '/depthmap1'),            # salida
-            ('image_raw', '/right/image_rect')
-        ],
+    disparity_to_laserscan = Node(
+        package='disparity_to_laserscan_cpp',
+        executable='disparity_to_laserscan',
+        name='disparity_to_laserscan',
+        output='screen',
         parameters=[{
-            'min_depth': 0.1,   # mínimo 10 cm
-            'max_depth': 5.0    # máximo 5 metros
-        }],
-        arguments=['--ros-args', '--log-level', 'debug']
+            'scan_height': 1,
+            'range_min': 0.1,
+            'range_max': 5.0
+        }]
     )
 
-    staticTransformCameras = Node(
+    # staticTransformCameras = Node(            # Para el pointcloud node custom
+    #     package='tf2_ros',
+    #     executable='static_transform_publisher',
+    #     arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'frame_left'],
+    # )
+
+    staticTransformCameras = Node(              # Para el nodo de laserscan
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'frame_left'],
+        arguments=['0', '0', '0', '0', '0', '3.14159', 'base_link', 'frame_left'],
     )
-
+    
     return LaunchDescription([
         camera_node,
         rectify_left,
         rectify_right,
         disparity_node,
-        pointcloud_custom_node,
+        # pointcloud_custom_node,
         # point_cloud_node,
-        # metric_depthmap,
-        # pointcloud_from_depth,
+
+        # depthmap_to_laserscan,
+        disparity_to_laserscan,
         staticTransformCameras
     ])
