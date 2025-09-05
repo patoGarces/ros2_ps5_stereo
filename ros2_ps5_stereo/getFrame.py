@@ -1,6 +1,5 @@
 import cv2
 import threading
-import queue
 from ros2_ps5_stereo.utilsClass import Resolutions, Utils
 
 WINDOWS_PLATFORM_NAME = 'Windows'
@@ -12,30 +11,41 @@ class GetFrame:
     # out_left = cv2.VideoWriter('left.avi',cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 40,(1264,800))
     # out_right = cv2.VideoWriter('right.avi',cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 40,(1264,800))
 
-    def __init__(self, resolution: Resolutions):
+    def __init__(self, logger, resolution: Resolutions):
+        self.logger = logger
         self.resolution = resolution
         self.flagRunning = threading.Event()
         self.flagRunning.clear()
         self.hilo_emision = None
-        self.queueFrames = queue.Queue(maxsize=1)
-        
-    def getQueueGetFrame(self):
-        return self.queueFrames
+        self.cbFrames = []
+        cv2.ocl.setUseOpenCL(True)
+    
+    def setCbFrames(self, cb):
+        self.cbFrames = cb
 
     def decode(self,frame):
 
         height, width, _ = frame.shape
         mid = width // 2
-        left_frame = frame[:, :mid, :]
-        right_frame = frame[:, mid:, :]
+        left_frame = frame[:, mid:, :]
+        right_frame = frame[:, :mid, :]
 
         if self.resolution in (
             Resolutions.RES_640x480_DOWNSAMPLED_8FPS,
             Resolutions.RES_640x480_DOWNSAMPLED_30FPS,
             Resolutions.RES_640x480_DOWNSAMPLED_60FPS
         ):
-            left_frame = cv2.resize(left_frame,(640,480))
-            right_frame = cv2.resize(right_frame,(640,480))
+            left_frame = cv2.UMat(left_frame)  # convierte a UMat para usar GPU con raspberry
+            right_frame = cv2.UMat(right_frame)
+
+            left_resized = cv2.resize(left_frame, (640,480))
+            right_resized = cv2.resize(right_frame, (640,480))
+
+            # volver a NumPy si hace falta
+            left_frame = left_resized.get()
+            right_frame = right_resized.get()
+            # left_frame = cv2.resize(left_frame,(640,480))
+            # right_frame = cv2.resize(right_frame,(640,480))
         
         return (left_frame, right_frame)
 
@@ -50,8 +60,9 @@ class GetFrame:
             # self.out_full.write(frame)
             # self.out_left.write(left)
             # self.out_right.write(right)
-
-            self.queueFrames.put((left,right))
+            self.cbFrames(left, right)
+        
+        self.logger.error('Error getting frame')
 
     def startStream(self, cameraIndex, resolution):
         
@@ -59,7 +70,7 @@ class GetFrame:
         self.resolution = resolution
 
         if not self.cap.isOpened:
-            print("Camera is not found")
+            self.logger.error("Failed starting stream, camera not found")
             return False
         else:
             try: 
@@ -73,7 +84,7 @@ class GetFrame:
                 self.hilo_emision.start()
                 return True
             except Exception as error:
-                print("error: ",error)
+                self.logger.error("error: ",error)
                 return False
 
     def stopStream(self):

@@ -10,7 +10,7 @@ def generate_launch_description():
         name='camera_node',
         output='screen',
         parameters=[{
-            'camera_resolution': Resolutions.RES_1280x800_30FPS.value,
+            'camera_resolution': Resolutions.RES_640x480_DOWNSAMPLED_30FPS.value,
             'roi_height': 50        #       crop de los frames de cameras NO SE UTILIZA ACTUALMENTE
         }]
     )
@@ -101,27 +101,25 @@ def generate_launch_description():
         }]
     )
 
-    # staticTransformCameras = Node(            # Para el pointcloud node custom
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-    #     arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'frame_left'],
-    # )
-
-    staticTransformCameras = Node(              # Para el nodo de laserscan
+    staticTransformCameras = Node(            # Para el pointcloud node custom
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '3.14159', 'base_link', 'frame_left'],
+        arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'frame_left'],
     )
-    
+
+    # staticTransformCameras = Node(              # Para el nodo de laserscan
+    #     package='tf2_ros',
+    #     executable='static_transform_publisher',
+    #     arguments=['0', '0', '0', '0', '0', '3.14159', 'base_link', 'frame_left'],
+    # )
+
     return LaunchDescription([
         camera_node,
         rectify_left,
         rectify_right,
         disparity_node,
         # pointcloud_custom_node,
-        # point_cloud_node,
-
-        # depthmap_to_laserscan,
-        disparity_to_laserscan,
+        point_cloud_node,
+        # disparity_to_laserscan,
         staticTransformCameras
     ])

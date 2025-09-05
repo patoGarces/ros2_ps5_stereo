@@ -7,12 +7,9 @@ from sensor_msgs.srv import SetCameraInfo
 import yaml
 import os
 
-from ros2_ps5_stereo.utilsClass import Resolutions, Utils
-
 from copy import deepcopy
-
-import queue
 from ros2_ps5_stereo.cameraPs5Handler import CameraPs5Handler
+from ros2_ps5_stereo.utilsClass import Resolutions, Utils
 
 class CameraNode(Node):
     def __init__(self):
@@ -28,14 +25,10 @@ class CameraNode(Node):
         res_enum_param = Resolutions(self.get_parameter('camera_resolution').value)
         roi_height_param = self.get_parameter('roi_height').value
 
-        period_fps = Utils().enumResolutionsToPeriod(res_enum_param)
-
         self.logger.info(
-            f'Resolución seleccionada: {res_enum_param}, period: {period_fps}, ROI: {roi_height_param} pixeles'
+            f'Resolución seleccionada: {res_enum_param}, ROI: {roi_height_param} pixeles'
         )
 
-        self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=roi_height_param)
-        self.frame_queue = self.cameraPs5Handler.getQueueFrames()
         self.bridge = CvBridge()
 
         # Publishers para cada frame (izquierda y derecha)
@@ -61,20 +54,13 @@ class CameraNode(Node):
         self.right_camera_info = self.__convertYamlToCameraInfo(calibRight)
         self.right_camera_info.header.frame_id = 'frame_right'
 
+        self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=roi_height_param)
+        self.cameraPs5Handler.setCbFrames(self.framePublisher)
+
         # TODO: pendiente almacenar los yaml recibidos en el service de SetCameraInfo
         # TODO: al almacenarlos se debe remplazar el camera name
 
-        self.timer = self.create_timer(period_fps, self.framePublisher)
-
-
-    def framePublisher(self):
-        try:
-            frames = self.frame_queue.get_nowait()  # sin bloqueo
-        except queue.Empty:
-            return  # no hay frames, salimos
-
-        frameR, frameL = frames
-
+    def framePublisher(self, frameL,frameR):
         # Convertir OpenCV a Image ROS
         msg_left_image = self.bridge.cv2_to_imgmsg(frameL, encoding='bgr8')
         msg_right_image = self.bridge.cv2_to_imgmsg(frameR, encoding='bgr8')
@@ -146,8 +132,6 @@ class CameraNode(Node):
         calib_right = os.path.join(base_path, folder, "right.yaml")
 
         return calib_left, calib_right
-
-
 
 def main(args=None):
     rclpy.init(args=args)

@@ -13,8 +13,9 @@ LINUX_PLATFORM_NAME = 'Linux'
 
 class ControlCamera():
 
-    def __init__(self):
-        print('Running at:' + platform.system())
+    def __init__(self, logger):
+        self.logger = logger
+        self.logger.info('Running at:' + platform.system())
 
     def loadFirmwareCamera(self):                       # TODO: deberia funcionar todo con pyusb, pero en windows no encuentra dispositivos
         
@@ -23,7 +24,7 @@ class ControlCamera():
         elif(platform.system() == LINUX_PLATFORM_NAME):
             self.__loadFirmCameraInLinux()
         else:
-            print('Running at unknown OS')
+            self.logger.error('Running at unknown OS')
             return False
         
     def getCameraStatus(self):
@@ -65,10 +66,10 @@ class ControlCamera():
                             return int(indexCamera)
 
             except Exception as e:
-                print(f'Error accediendo al dispositivo: {e}')
+                self.logger.error(f'Error accediendo al dispositivo: {e}')
                 continue
 
-        print("No se encontró cámara con ese VID/PID.")
+        self.logger.error("No se encontró cámara con ese VID/PID.")
         return None
 
     def __getStatusCameraInWindows(self):
@@ -86,7 +87,7 @@ class ControlCamera():
                 elif( deviceId.DeviceID.find("VID_05A9&PID_058C") > 0):
                     return StatusCamera.CAMERA_CONNECTED_OK
         except Exception as error:
-            print('error', error)
+            self.logger.error('error', error)
             return StatusCamera.CAMERA_NOT_CONNECTED
         
     def __getStatusCameraInLinux(self):
@@ -148,10 +149,10 @@ class ControlCamera():
 
         try:
             firmwarePath = 'src/ros2_ps5_stereo/ros2_ps5_stereo/firmware.bin'
-            print('firmware path: ' + firmwarePath)
+            self.logger.info('firmware path: ' + firmwarePath)
             firmware=open(firmwarePath,"rb")
         except:
-            print('error open firmware camera')
+            self.logger.error('error open firmware camera')
             return False
 
         # transfer 512b chunks of the firmware
@@ -162,7 +163,7 @@ class ControlCamera():
                 value=0
                 index+=1
             if len(chunk)!=ret:
-                print("sent %d/%d bytes" % (ret,len(chunk)))
+                self.logger.info("sent %d/%d bytes" % (ret,len(chunk)))
 
         try:
             # command reboots device with new firmware and product id
@@ -170,10 +171,10 @@ class ControlCamera():
 
         except usb.core.USBError as e:
             if e.errno == 19:  # No such device (expected if firmware loaded successfully)
-                print('✅ PS5 camera firmware uploaded and device reset')
+                self.logger.info('✅ PS5 camera firmware uploaded and device reset')
                 return True
             else:
-                print('error loading firmware camera' + str(traceback.print_exc()))
+                self.logger.error('error loading firmware camera' + str(traceback.print_exc()))
                 return False
         return True
 
