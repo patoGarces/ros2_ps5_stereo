@@ -3,7 +3,6 @@ import threading
 import queue
 from ros2_ps5_stereo.utilsClass import Resolutions, Utils
 
-import sys
 WINDOWS_PLATFORM_NAME = 'Windows'
 LINUX_PLATFORM_NAME = 'Linux'
 
