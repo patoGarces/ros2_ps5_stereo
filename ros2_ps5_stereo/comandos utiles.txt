@@ -54,16 +54,15 @@ Para generar el mapa de disparidad:
 Para ver mapa de disparidad:
 - ros2 run image_view disparity_view image:=/disparity
 
+Para ver variables de topicos egraficados:
+- ros2 run rqt_plot rqt_plot
 
 Para correr el configure rqt:
 - ros2 run rqt_reconfigure rqt_reconfigure
 
 
-
-
 Convertir el mapa de disparidad en pointcloud:
 - ros2 run stereo_image_proc point_cloud_node
-
 
 
 setear fixed frame:

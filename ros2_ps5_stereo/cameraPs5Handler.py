@@ -13,10 +13,9 @@ class CameraPs5Handler():
 
         self.logger = logger
         self.cameraResolution = resolution_enum
-        self.roiHeight = roi_height
 
         self.controlCamera = ControlCamera(logger)
-        self.getFrame =  GetFrame(logger, resolution_enum)
+        self.getFrame =  GetFrame(logger, resolution_enum, roi_height)
 
         self.zFilterHeight = 0
         self.zFilterThickness = 0.5

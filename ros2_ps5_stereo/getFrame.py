@@ -11,9 +11,10 @@ class GetFrame:
     # out_left = cv2.VideoWriter('left.avi',cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 40,(1264,800))
     # out_right = cv2.VideoWriter('right.avi',cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 40,(1264,800))
 
-    def __init__(self, logger, resolution: Resolutions):
+    def __init__(self, logger, resolution: Resolutions, roi_height):
         self.logger = logger
         self.resolution = resolution
+        self.roiHeight = roi_height
         self.flagRunning = threading.Event()
         self.flagRunning.clear()
         self.hilo_emision = None
@@ -27,8 +28,17 @@ class GetFrame:
 
         height, width, _ = frame.shape
         mid = width // 2
-        left_frame = frame[:, mid:, :]
-        right_frame = frame[:, :mid, :]
+        centerHeight = height // 2
+
+        if (self.roiHeight is not None):
+            minRoiHeight = centerHeight - self.roiHeight
+            maxRoiHeight = centerHeight + self.roiHeight
+        else:
+            minRoiHeight = 0
+            maxRoiHeight = height
+
+        left_frame = frame[minRoiHeight:maxRoiHeight, mid:, :]
+        right_frame = frame[minRoiHeight:maxRoiHeight, :mid, :]
 
         if self.resolution in (
             Resolutions.RES_640x480_DOWNSAMPLED_8FPS,

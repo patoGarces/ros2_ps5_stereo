@@ -4,8 +4,11 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.srv import SetCameraInfo
+from sensor_msgs.msg import RegionOfInterest
 import yaml
 import os
+
+from array import array
 
 from copy import deepcopy
 from ros2_ps5_stereo.cameraPs5Handler import CameraPs5Handler
@@ -19,14 +22,18 @@ class CameraNode(Node):
 
         # Parámetros del nodo
         self.declare_parameter('camera_resolution', Resolutions.RES_1280x800_8FPS.value)    # entero que mapea al enum de resolution
-        self.declare_parameter('roi_height', 25)                                            # píxeles arriba/abajo del centro
+        self.declare_parameter('roi_height', 0)                                             # píxeles arriba/abajo del centro
 
         # Leer parámetros
         res_enum_param = Resolutions(self.get_parameter('camera_resolution').value)
-        roi_height_param = self.get_parameter('roi_height').value
+        roi_height_objetive = self.get_parameter('roi_height').value
+
+        self.roi_height = None
+        if (roi_height_objetive is not None and roi_height_objetive > 5):
+            self.roi_height = roi_height_objetive
 
         self.logger.info(
-            f'Resolución seleccionada: {res_enum_param}, ROI: {roi_height_param} pixeles'
+            f'Resolución seleccionada: {res_enum_param}, ROI height: {self.roi_height} pixeles'
         )
 
         self.bridge = CvBridge()
@@ -54,11 +61,48 @@ class CameraNode(Node):
         self.right_camera_info = self.__convertYamlToCameraInfo(calibRight)
         self.right_camera_info.header.frame_id = 'frame_right'
 
-        self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=roi_height_param)
+        if (self.roi_height is not None):
+            self.left_camera_info = self.crop_camera_info(self.left_camera_info, self.roi_height * 2)
+            self.right_camera_info = self.crop_camera_info(self.right_camera_info, self.roi_height * 2)
+
+        self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=self.roi_height)
         self.cameraPs5Handler.setCbFrames(self.framePublisher)
 
         # TODO: pendiente almacenar los yaml recibidos en el service de SetCameraInfo
         # TODO: al almacenarlos se debe remplazar el camera name
+
+    def crop_camera_info(self, cam_info, roi_height, start_y=0):
+        # Crear nuevo CameraInfo explícitamente
+        new_info = CameraInfo()
+
+        # Copiar header y dimensiones
+        new_info.header = cam_info.header
+        new_info.height = roi_height
+        new_info.width = cam_info.width
+        new_info.distortion_model = cam_info.distortion_model
+
+        # Copiar arrays como array.array
+        new_info.d = array('d', cam_info.d)
+        new_info.k = array('d', cam_info.k)
+        new_info.r = array('d', cam_info.r)
+        new_info.p = array('d', cam_info.p)
+
+        # Ajustar centro óptico vertical (cy)
+        cy_original = cam_info.k[5]
+        cy_new = cy_original - start_y
+        new_info.k[5] = cy_new
+        new_info.p[6] = cy_new
+
+        # ROI
+        # roi = RegionOfInterest()
+        # roi.x_offset = 0
+        # roi.y_offset = start_y
+        # roi.width = cam_info.width
+        # roi.height = roi_height
+        # roi.do_rectify = True
+        # new_info.roi = roi
+
+        return new_info
 
     def framePublisher(self, frameL,frameR):
         # Convertir OpenCV a Image ROS
