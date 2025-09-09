@@ -47,9 +47,10 @@ class GetFrame:
         ):
             left_frame = cv2.UMat(left_frame)  # convierte a UMat para usar GPU con raspberry
             right_frame = cv2.UMat(right_frame)
+            roiHeight = (maxRoiHeight-minRoiHeight)
 
-            left_resized = cv2.resize(left_frame, (640,480))
-            right_resized = cv2.resize(right_frame, (640,480))
+            left_resized = cv2.resize(left_frame, (640,roiHeight))
+            right_resized = cv2.resize(right_frame, (640,roiHeight))
 
             # volver a NumPy si hace falta
             left_frame = left_resized.get()
