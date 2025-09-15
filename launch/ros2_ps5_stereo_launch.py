@@ -104,13 +104,13 @@ def generate_launch_description():
     staticTransformPointCloud = Node(            # Para el pointcloud node custom
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'frame_left'],
+        arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'lidar_link'],
     )
 
     staticTransformLaserscan = Node(              # Para el nodo de laserscan
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '3.14159', 'base_link', 'frame_left'],
+        arguments=['0', '0', '0', '0', '0', '3.14159', 'base_link', 'lidar_link'],
     )
 
     return LaunchDescription([
