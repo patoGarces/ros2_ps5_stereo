@@ -81,5 +81,14 @@ relacionar frames del odometro con el pointcloud:
 - ros2 lifecycle set /amcl configure
 
 
+Ver los tfs actuales:
+- ros2 run tf2_tools view_frames
+
+
+
+
+
+
+    ros2 launch slam_toolbox online_async_launch.py --ros-args -p odom_topic:=/odom
 
 

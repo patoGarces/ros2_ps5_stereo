@@ -1,8 +1,16 @@
+import os
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from ros2_ps5_stereo.utilsClass import Resolutions
+from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
+    laser_filter_yaml = os.path.join(
+        get_package_share_directory('hoverrobot_navigation'),
+        "config",
+        'laser_filters.yaml'
+    )
+
     # Nodo de cámaras, ros2_ps5_stereo y el ejecutable camera_node
     camera_node = Node(
         package='ros2_ps5_stereo',
@@ -10,7 +18,7 @@ def generate_launch_description():
         name='camera_node',
         output='screen',
         parameters=[{
-            'camera_resolution': Resolutions.RES_640x480_DOWNSAMPLED_60FPS.value,
+            'camera_resolution': Resolutions.RES_640x480_DOWNSAMPLED_30FPS.value,
             'roi_height': 50       #  crop de los frames de cameras,  No enviar si no se utiliza,    
         }]
     )
@@ -101,6 +109,17 @@ def generate_launch_description():
         }]
     )
 
+    laserscan_filters = Node(
+        package='laser_filters',
+        executable='scan_to_scan_filter_chain',
+        name='scan_filter',
+        parameters=[{
+            'filter_chain_parameter_name': 'scan_filter_chain',
+            'filter_chain_parameters_source': laser_filter_yaml
+        }],
+        # remappings=[]
+    )
+
     staticTransformPointCloud = Node(            # Para el pointcloud node custom
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -122,5 +141,6 @@ def generate_launch_description():
         # point_cloud_node,
         # staticTransformPointCloud,
         disparity_to_laserscan,
+        laserscan_filters,
         staticTransformLaserscan
     ])
