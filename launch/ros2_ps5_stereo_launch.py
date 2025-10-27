@@ -18,7 +18,7 @@ def generate_launch_description():
         name='camera_node',
         output='screen',
         parameters=[{
-            'camera_resolution': Resolutions.RES_640x480_DOWNSAMPLED_30FPS.value,
+            'camera_resolution': Resolutions.RES_640x480_DOWNSAMPLED_8FPS.value,
             'roi_height': 50       #  crop de los frames de cameras,  No enviar si no se utiliza,    
         }]
     )
