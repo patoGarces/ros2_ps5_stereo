@@ -62,8 +62,17 @@ class CameraNode(Node):
         self.right_camera_info.header.frame_id = 'frame_right'
 
         if (self.roi_height is not None):
-            self.left_camera_info = self.crop_camera_info(self.left_camera_info, self.roi_height * 2)
-            self.right_camera_info = self.crop_camera_info(self.right_camera_info, self.roi_height * 2)
+            self.left_camera_info = self.crop_camera_info(
+                self.left_camera_info,
+                self.roi_height,
+                start_y=(self.left_camera_info.height - self.roi_height) // 2
+            )
+
+            self.right_camera_info = self.crop_camera_info(
+                self.right_camera_info,
+                self.roi_height,
+                start_y=(self.right_camera_info.height - self.roi_height) // 2
+            )
 
         self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=self.roi_height)
         self.cameraPs5Handler.setCbFrames(self.framePublisher)
@@ -71,36 +80,19 @@ class CameraNode(Node):
         # TODO: pendiente almacenar los yaml recibidos en el service de SetCameraInfo
         # TODO: al almacenarlos se debe remplazar el camera name
 
-    def crop_camera_info(self, cam_info, roi_height, start_y=0):
-        # Crear nuevo CameraInfo explícitamente
-        new_info = CameraInfo()
+    
+    def crop_camera_info(self, cam_info, roi_height, start_y):
+        new_info = deepcopy(cam_info)
 
-        # Copiar header y dimensiones
-        new_info.header = cam_info.header
         new_info.height = roi_height
         new_info.width = cam_info.width
-        new_info.distortion_model = cam_info.distortion_model
 
-        # Copiar arrays como array.array
-        new_info.d = array('d', cam_info.d)
-        new_info.k = array('d', cam_info.k)
-        new_info.r = array('d', cam_info.r)
-        new_info.p = array('d', cam_info.p)
+        # Ajustar centro óptico vertical
+        new_info.k[5] = cam_info.k[5] - start_y
+        new_info.p[6] = cam_info.p[6] - start_y
 
-        # Ajustar centro óptico vertical (cy)
-        cy_original = cam_info.k[5]
-        cy_new = cy_original - start_y
-        new_info.k[5] = cy_new
-        new_info.p[6] = cy_new
-
-        # ROI
-        # roi = RegionOfInterest()
-        # roi.x_offset = 0
-        # roi.y_offset = start_y
-        # roi.width = cam_info.width
-        # roi.height = roi_height
-        # roi.do_rectify = True
-        # new_info.roi = roi
+        # La imagen ya está recortada: no declarar otro ROI.
+        new_info.roi = RegionOfInterest()
 
         return new_info
 

@@ -18,8 +18,8 @@ def generate_launch_description():
         name='camera_node',
         output='screen',
         parameters=[{
-            'camera_resolution': Resolutions.RES_640x480_DOWNSAMPLED_8FPS.value,
-            'roi_height': 50       #  crop de los frames de cameras,  No enviar si no se utiliza,    
+            'camera_resolution': Resolutions.RES_1920x1080_8FPS.value,
+            'roi_height': 70       #  crop de los frames de cameras, debe ser mayor a correlation_window_size,  No enviar si no se utiliza,    
         }]
     )
 

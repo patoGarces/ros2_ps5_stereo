@@ -24,42 +24,21 @@ class GetFrame:
     def setCbFrames(self, cb):
         self.cbFrames = cb
 
-    def decode(self,frame):
+    def decode(self, frame):
+        mid = frame.shape[1] // 2
 
-        height, width, _ = frame.shape
-        mid = width // 2
-        centerHeight = height // 2
+        left_frame = frame[:, mid:, :]
+        right_frame = frame[:, :mid, :]
 
-        if (self.roiHeight is not None):
-            minRoiHeight = centerHeight - self.roiHeight
-            maxRoiHeight = centerHeight + self.roiHeight
-        else:
-            minRoiHeight = 0
-            maxRoiHeight = height
+        if self.roiHeight is not None:
+            start_y = (left_frame.shape[0] - self.roiHeight) // 2
+            end_y = start_y + self.roiHeight
 
-        left_frame = frame[minRoiHeight:maxRoiHeight, mid:, :]
-        right_frame = frame[minRoiHeight:maxRoiHeight, :mid, :]
+            left_frame = left_frame[start_y:end_y, :, :]
+            right_frame = right_frame[start_y:end_y, :, :]
 
-        if self.resolution in (
-            Resolutions.RES_640x480_DOWNSAMPLED_8FPS,
-            Resolutions.RES_640x480_DOWNSAMPLED_30FPS,
-            Resolutions.RES_640x480_DOWNSAMPLED_60FPS
-        ):
-            left_frame = cv2.UMat(left_frame)  # convierte a UMat para usar GPU con raspberry
-            right_frame = cv2.UMat(right_frame)
-            roiHeight = (maxRoiHeight-minRoiHeight)
-
-            left_resized = cv2.resize(left_frame, (640,roiHeight))
-            right_resized = cv2.resize(right_frame, (640,roiHeight))
-
-            # volver a NumPy si hace falta
-            left_frame = left_resized.get()
-            right_frame = right_resized.get()
-            # left_frame = cv2.resize(left_frame,(640,480))
-            # right_frame = cv2.resize(right_frame,(640,480))
-        
-        return (left_frame, right_frame)
-
+        return left_frame, right_frame
+    
     def getNewFrame(self):
 
         while self.flagRunning.isSet():
@@ -80,12 +59,12 @@ class GetFrame:
         self.cap = cv2.VideoCapture(cameraIndex)
         self.resolution = resolution
 
-        if not self.cap.isOpened:
+        if not self.cap.isOpened():
             self.logger.error("Failed starting stream, camera not found")
             return False
         else:
             try: 
-                widht , height , fps = Utils().enumToResolutionAndFps(resolution)
+                widht , height , fps = Utils().enumToResolutionAndFps(Resolutions.RES_1920x1080_8FPS) # resolution)
                 self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, widht)
                 self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
                 self.cap.set(cv2.CAP_PROP_FPS, fps) 
