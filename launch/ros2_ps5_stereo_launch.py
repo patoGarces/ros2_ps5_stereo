@@ -97,6 +97,13 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'error']
     )
 
+    ws_bridge = Node(
+        package='hoverrobot_ws_bridge',
+        executable='bridge_node',
+        name='hoverrobot_websocket_bridge',
+        output='screen',
+    )
+
     disparity_to_laserscan = Node(
         package='disparity_to_laserscan_cpp',
         executable='disparity_to_laserscan',
@@ -120,10 +127,16 @@ def generate_launch_description():
         # remappings=[]
     )
 
-    staticTransformPointCloud = Node(            # Para el pointcloud node custom
+    staticTransformCustomPointCloud = Node(            # Para el pointcloud node custom
         package='tf2_ros',
         executable='static_transform_publisher',
         arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'lidar_link'],
+    )
+
+    staticTransformPointCloud = Node(            # Para el pointcloud
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments=['0', '0', '0', '-1.5708', '0', '-1.5708', 'base_link', 'frame_left'],
     )
 
     staticTransformLaserscan = Node(              # Para el nodo de laserscan
@@ -138,9 +151,11 @@ def generate_launch_description():
         rectify_right,
         disparity_node,
         # pointcloud_custom_node,
-        # point_cloud_node,
-        # staticTransformPointCloud,
-        disparity_to_laserscan,
-        laserscan_filters,
+        point_cloud_node,
+        staticTransformPointCloud,
+        # staticTransformCustomPointCloud,
+        # disparity_to_laserscan,
+        # laserscan_filters,
+        ws_bridge,
         staticTransformLaserscan
     ])
