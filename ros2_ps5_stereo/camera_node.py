@@ -65,14 +65,13 @@ class CameraNode(Node):
 
         scale = 1 / self.downsampleFactor
 
-        if self.roi_height is not None:
-            self.left_camera_info = self.crop_camera_info(
-                self.left_camera_info, self.roi_height, scale
-            )
+        self.left_camera_info = self.crop_camera_info(
+            self.left_camera_info, self.roi_height, scale
+        )
 
-            self.right_camera_info = self.crop_camera_info(
-                self.right_camera_info, self.roi_height, scale
-            )
+        self.right_camera_info = self.crop_camera_info(
+            self.right_camera_info, self.roi_height, scale
+        )
 
         self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=self.roi_height, downsample_factor = self.downsampleFactor)
         self.cameraPs5Handler.setCbFrames(self.framePublisher)
@@ -89,11 +88,15 @@ class CameraNode(Node):
         scaled_width = int(original_width * scale)
         scaled_height = int(original_height * scale)
 
-        roi_height = min(roi_height, scaled_height)
-        start_y = (scaled_height - roi_height) // 2
+        if roi_height is not None:
+            roi_height = min(roi_height, scaled_height)
+            start_y = (scaled_height - roi_height) // 2
+            scaled_height = roi_height
+        else:
+            start_y = 0
 
         new_info.width = scaled_width
-        new_info.height = roi_height
+        new_info.height = scaled_height
 
         # Escalar parámetros intrínsecos K
         new_info.k[0] *= scale
@@ -117,20 +120,6 @@ class CameraNode(Node):
 
         return new_info
     
-    def crop_camera_info_orig(self, cam_info, roi_height, start_y):
-        new_info = deepcopy(cam_info)
-
-        new_info.height = roi_height
-        new_info.width = cam_info.width
-
-        # Ajustar centro óptico vertical
-        new_info.k[5] = cam_info.k[5] - start_y
-        new_info.p[6] = cam_info.p[6] - start_y
-
-        # La imagen ya está recortada: no declarar otro ROI.
-        new_info.roi = RegionOfInterest()
-
-        return new_info
 
     def framePublisher(self, frameL,frameR):
         # Convertir OpenCV a Image ROS
