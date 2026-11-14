@@ -23,17 +23,19 @@ class CameraNode(Node):
         # Parámetros del nodo
         self.declare_parameter('camera_resolution', Resolutions.RES_1280x800_8FPS.value)    # entero que mapea al enum de resolution
         self.declare_parameter('roi_height', 0)                                             # píxeles arriba/abajo del centro
+        self.declare_parameter('downsample_factor', 1)                                       # píxeles arriba/abajo del centro
 
         # Leer parámetros
         res_enum_param = Resolutions(self.get_parameter('camera_resolution').value)
         roi_height_objetive = self.get_parameter('roi_height').value
+        self.downsampleFactor = self.get_parameter('downsample_factor').value
 
         self.roi_height = None
         if (roi_height_objetive is not None and roi_height_objetive > 5):
             self.roi_height = roi_height_objetive
 
         self.logger.info(
-            f'Resolución seleccionada: {res_enum_param}, ROI height: {self.roi_height} pixeles'
+            f'Resolución seleccionada: {res_enum_param}, ROI height: {self.roi_height} pixeles, DownsampleFactor: {self.downsampleFactor}'
         )
 
         self.bridge = CvBridge()
@@ -61,27 +63,61 @@ class CameraNode(Node):
         self.right_camera_info = self.__convertYamlToCameraInfo(calibRight)
         self.right_camera_info.header.frame_id = 'frame_right'
 
-        if (self.roi_height is not None):
+        scale = 1 / self.downsampleFactor
+
+        if self.roi_height is not None:
             self.left_camera_info = self.crop_camera_info(
-                self.left_camera_info,
-                self.roi_height,
-                start_y=(self.left_camera_info.height - self.roi_height) // 2
+                self.left_camera_info, self.roi_height, scale
             )
 
             self.right_camera_info = self.crop_camera_info(
-                self.right_camera_info,
-                self.roi_height,
-                start_y=(self.right_camera_info.height - self.roi_height) // 2
+                self.right_camera_info, self.roi_height, scale
             )
 
-        self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=self.roi_height)
+        self.cameraPs5Handler = CameraPs5Handler(logger = self.logger, resolution_enum=res_enum_param, roi_height=self.roi_height, downsample_factor = self.downsampleFactor)
         self.cameraPs5Handler.setCbFrames(self.framePublisher)
 
         # TODO: pendiente almacenar los yaml recibidos en el service de SetCameraInfo
         # TODO: al almacenarlos se debe remplazar el camera name
 
+    def crop_camera_info(self, cam_info, roi_height, scale):
+        new_info = deepcopy(cam_info)
+
+        original_height = 1080
+        original_width = 1920
+
+        scaled_width = int(original_width * scale)
+        scaled_height = int(original_height * scale)
+
+        roi_height = min(roi_height, scaled_height)
+        start_y = (scaled_height - roi_height) // 2
+
+        new_info.width = scaled_width
+        new_info.height = roi_height
+
+        # Escalar parámetros intrínsecos K
+        new_info.k[0] *= scale
+        new_info.k[2] *= scale
+        new_info.k[4] *= scale
+        new_info.k[5] *= scale
+
+        # Escalar parámetros de proyección P
+        new_info.p[0] *= scale
+        new_info.p[2] *= scale
+        new_info.p[3] *= scale
+        new_info.p[5] *= scale
+        new_info.p[6] *= scale
+        new_info.p[7] *= scale
+
+        # Ajustar centro óptico vertical por el ROI
+        new_info.k[5] -= start_y
+        new_info.p[6] -= start_y
+
+        new_info.roi = RegionOfInterest()
+
+        return new_info
     
-    def crop_camera_info(self, cam_info, roi_height, start_y):
+    def crop_camera_info_orig(self, cam_info, roi_height, start_y):
         new_info = deepcopy(cam_info)
 
         new_info.height = roi_height

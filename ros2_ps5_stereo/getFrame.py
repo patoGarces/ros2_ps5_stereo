@@ -11,10 +11,11 @@ class GetFrame:
     # out_left = cv2.VideoWriter('left.avi',cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 40,(1264,800))
     # out_right = cv2.VideoWriter('right.avi',cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 40,(1264,800))
 
-    def __init__(self, logger, resolution: Resolutions, roi_height):
+    def __init__(self, logger, resolution: Resolutions, roi_height, downsample_factor):
         self.logger = logger
         self.resolution = resolution
         self.roiHeight = roi_height
+        self.downsampleFactor = downsample_factor
         self.flagRunning = threading.Event()
         self.flagRunning.clear()
         self.hilo_emision = None
@@ -24,7 +25,34 @@ class GetFrame:
     def setCbFrames(self, cb):
         self.cbFrames = cb
 
-    def decode(self, frame):
+    def decode(self,frame):
+        mid = frame.shape[1] // 2
+
+        left_frame = frame[:, mid:, :]
+        right_frame = frame[:, :mid, :]
+
+        scale = 1 / self.downsampleFactor
+
+        new_size = (
+            int(left_frame.shape[1] * scale),
+            int(left_frame.shape[0] * scale)
+        )
+
+        left_frame = cv2.resize(left_frame, new_size, interpolation=cv2.INTER_AREA)
+        right_frame = cv2.resize(right_frame, new_size, interpolation=cv2.INTER_AREA)
+
+        if self.roiHeight is not None:
+            roi_height = min(self.roiHeight, left_frame.shape[0])
+
+            start_y = (left_frame.shape[0] - roi_height) // 2
+            end_y = start_y + roi_height
+
+            left_frame = left_frame[start_y:end_y, :, :]
+            right_frame = right_frame[start_y:end_y, :, :]
+
+        return left_frame, right_frame
+
+    def decodeOrig(self, frame):
         mid = frame.shape[1] // 2
 
         left_frame = frame[:, mid:, :]

@@ -9,13 +9,13 @@ class CameraPs5Handler():
 
     statusCameraUi = 0
 
-    def __init__(self, logger, resolution_enum, roi_height):
+    def __init__(self, logger, resolution_enum, roi_height, downsample_factor):
 
         self.logger = logger
         self.cameraResolution = resolution_enum
 
         self.controlCamera = ControlCamera(logger)
-        self.getFrame =  GetFrame(logger, resolution_enum, roi_height)
+        self.getFrame =  GetFrame(logger, resolution_enum, roi_height, downsample_factor)
 
         self.zFilterHeight = 0
         self.zFilterThickness = 0.5

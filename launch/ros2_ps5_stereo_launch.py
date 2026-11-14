@@ -19,7 +19,8 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'camera_resolution': Resolutions.RES_1920x1080_8FPS.value,
-            'roi_height': 70       #  crop de los frames de cameras, debe ser mayor a correlation_window_size,  No enviar si no se utiliza,    
+            'roi_height': 50,       #  crop de los frames de cameras, debe ser mayor a correlation_window_size,  No enviar si no se utiliza,    
+            'downsample_factor': 5
         }]
     )
 
@@ -59,9 +60,9 @@ def generate_launch_description():
             'sgbm_mode': 0,
             'prefilter_size': 9,
             'prefilter_cap': 31,
-            'correlation_window_size': 61,
+            'correlation_window_size': 31,# 61,
             'min_disparity': 0,
-            'disparity_range': 192,
+            'disparity_range': 64, #192
             'uniqueness_ratio': 5.0,
             'texture_threshold': 10,
             'speckle_size': 100,
